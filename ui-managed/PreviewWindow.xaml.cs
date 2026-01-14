@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -13,6 +14,16 @@ namespace Lumos.UI
     {
         private CancellationTokenSource? _renderCancellation;
         private readonly RendererFactory _rendererFactory;
+
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int X;
+            public int Y;
+        }
 
         public PreviewWindow()
         {
@@ -79,17 +90,12 @@ namespace Lumos.UI
 
         private void PositionWindowNearCursor()
         {
-            // Get cursor position
-            var cursorPos = System.Windows.Forms.Cursor.Position;
+            // Get cursor position using Win32 API
+            GetCursorPos(out POINT cursorPos);
 
-            // Get screen dimensions
-            var screen = System.Windows.Forms.Screen.FromPoint(cursorPos);
-            var screenWidth = screen.WorkingArea.Width;
-            var screenHeight = screen.WorkingArea.Height;
-
-            // Calculate max window size (80% of screen)
-            var maxWidth = screenWidth * 0.8;
-            var maxHeight = screenHeight * 0.8;
+            // Get primary screen dimensions
+            var screenWidth = SystemParameters.PrimaryScreenWidth;
+            var screenHeight = SystemParameters.PrimaryScreenHeight;
 
             // Update layout to get actual size
             UpdateLayout();
@@ -99,8 +105,8 @@ namespace Lumos.UI
             var top = cursorPos.Y - (ActualHeight / 2);
 
             // Constrain to screen bounds
-            left = Math.Max(screen.WorkingArea.Left, Math.Min(left, screen.WorkingArea.Right - ActualWidth));
-            top = Math.Max(screen.WorkingArea.Top, Math.Min(top, screen.WorkingArea.Bottom - ActualHeight));
+            left = Math.Max(0, Math.Min(left, screenWidth - ActualWidth));
+            top = Math.Max(0, Math.Min(top, screenHeight - ActualHeight));
 
             Left = left;
             Top = top;
