@@ -56,13 +56,13 @@ jobs:
         }
         
     - name: Upload MSIX Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Lumos-MSIX
         path: AppPackages/**/*.msix
         
     - name: Upload Certificate (for installation)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Lumos-Certificate
         path: LumosCert.pfx
