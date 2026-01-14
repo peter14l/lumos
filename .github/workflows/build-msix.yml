@@ -1,0 +1,68 @@
+name: Build and Package Lumos MSIX
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.3
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1
+      
+    - name: Restore NuGet packages
+      run: nuget restore Lumos.sln
+      
+    - name: Build C++ Core (core-native)
+      run: msbuild core-native/core-native.vcxproj /p:Configuration=Release /p:Platform=x64
+      
+    - name: Build C# UI (ui-managed)
+      run: msbuild ui-managed/ui-managed.csproj /p:Configuration=Release /p:Platform=x64
+      
+    - name: Generate self-signed certificate
+      run: |
+        $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=Lumos" -KeyUsage DigitalSignature -FriendlyName "Lumos Certificate" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+        $password = ConvertTo-SecureString -String "LumosCert2026" -Force -AsPlainText
+        Export-PfxCertificate -Cert $cert -FilePath LumosCert.pfx -Password $password
+        
+    - name: Build MSIX Package
+      run: msbuild packaging/Lumos.wapproj /p:Configuration=Release /p:Platform=x64 /p:AppxPackageDir=AppPackages\ /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:PackageCertificateKeyFile=..\LumosCert.pfx /p:PackageCertificatePassword=LumosCert2026
+      
+    - name: Sign MSIX Package
+      run: |
+        $msixPath = Get-ChildItem -Path "AppPackages" -Filter "*.msix" -Recurse | Select-Object -First 1
+        if ($msixPath) {
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign /fd SHA256 /f LumosCert.pfx /p LumosCert2026 $msixPath.FullName
+          Write-Host "Signed: $($msixPath.FullName)"
+        } else {
+          Write-Error "MSIX package not found"
+          exit 1
+        }
+        
+    - name: Upload MSIX Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Lumos-MSIX
+        path: AppPackages/**/*.msix
+        
+    - name: Upload Certificate (for installation)
+      uses: actions/upload-artifact@v3
+      with:
+        name: Lumos-Certificate
+        path: LumosCert.pfx
