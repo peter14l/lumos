@@ -1,15 +1,10 @@
 #include "../shared-contracts/PreviewRequest.h"
 #include <sstream>
 #include <iomanip>
-#include <codecvt>
-#include <locale>
+#include <Windows.h>
 
 namespace Lumos {
     std::string PreviewRequest::ToJson() const {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-        std::string pathUtf8 = converter.to_bytes(path);
-        std::string extensionUtf8 = converter.to_bytes(extension);
-
         std::ostringstream oss;
         oss << "{";
         oss << "\"path\":\"";
@@ -25,7 +20,16 @@ namespace Lumos {
             }
         }
         
-        oss << "\",\"extension\":\"" << extensionUtf8 << "\"";
+        // Convert extension to UTF-8 using Windows API
+        int extensionSize = WideCharToMultiByte(CP_UTF8, 0, extension.c_str(), -1, nullptr, 0, nullptr, nullptr);
+        if (extensionSize > 0) {
+            std::string extensionUtf8(extensionSize - 1, '\0');
+            WideCharToMultiByte(CP_UTF8, 0, extension.c_str(), -1, &extensionUtf8[0], extensionSize, nullptr, nullptr);
+            oss << "\",\"extension\":\"" << extensionUtf8 << "\"";
+        } else {
+            oss << "\",\"extension\":\"\"";
+        }
+        
         oss << ",\"size\":" << size;
         oss << "}";
 
