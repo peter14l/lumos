@@ -29,8 +29,11 @@ jobs:
     - name: Restore NuGet packages
       run: nuget restore Lumos.sln
       
-    - name: Build Solution (All Projects)
-      run: msbuild Lumos.sln /p:Configuration=Release /p:Platform=x64 /v:detailed
+    - name: Build C++ Core (core-native)
+      run: msbuild core-native/core-native.vcxproj /p:Configuration=Release /p:Platform=x64
+      
+    - name: Build C# UI (ui-managed)
+      run: msbuild ui-managed/ui-managed.csproj /p:Configuration=Release /p:Platform=x64
       
     - name: Generate self-signed certificate
       run: |
@@ -42,9 +45,11 @@ jobs:
         
     - name: Build MSIX Package
       run: |
-        $certPath = Join-Path $PWD "LumosCert.pfx"
+        $certPath = Resolve-Path "LumosCert.pfx"
+        $appxDir = Join-Path $PWD "AppPackages"
         Write-Host "Building MSIX with certificate: $certPath"
-        msbuild packaging/Lumos.wapproj /p:Configuration=Release /p:Platform=x64 /p:AppxPackageDir="$PWD\AppPackages\" /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:PackageCertificateKeyFile="$certPath" /p:PackageCertificatePassword=LumosCert2026 /v:detailed
+        Write-Host "Output directory: $appxDir"
+        msbuild packaging/Lumos.wapproj /p:Configuration=Release /p:Platform=x64 /p:AppxPackageDir="$appxDir\" /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:PackageCertificateKeyFile="$certPath" /p:PackageCertificatePassword=LumosCert2026
         
     - name: List AppPackages directory
       run: |
