@@ -29,21 +29,28 @@ jobs:
     - name: Restore NuGet packages
       run: nuget restore Lumos.sln
       
-    - name: Build C++ Core (core-native)
-      run: msbuild core-native/core-native.vcxproj /p:Configuration=Release /p:Platform=x64
-      
-    - name: Build C# UI (ui-managed)
-      run: msbuild ui-managed/ui-managed.csproj /p:Configuration=Release /p:Platform=x64
+    - name: Build Solution (All Projects)
+      run: msbuild Lumos.sln /p:Configuration=Release /p:Platform=x64 /v:detailed
       
     - name: Generate self-signed certificate
       run: |
         $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=Lumos" -KeyUsage DigitalSignature -FriendlyName "Lumos Certificate" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
         $password = ConvertTo-SecureString -String "LumosCert2026" -Force -AsPlainText
-        Export-PfxCertificate -Cert $cert -FilePath LumosCert.pfx -Password $password
+        $certPath = Join-Path $PWD "LumosCert.pfx"
+        Export-PfxCertificate -Cert $cert -FilePath $certPath -Password $password
+        Write-Host "Certificate created at: $certPath"
         
     - name: Build MSIX Package
-      run: msbuild packaging/Lumos.wapproj /p:Configuration=Release /p:Platform=x64 /p:AppxPackageDir=AppPackages\ /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:PackageCertificateKeyFile=..\LumosCert.pfx /p:PackageCertificatePassword=LumosCert2026
-      
+      run: |
+        $certPath = Join-Path $PWD "LumosCert.pfx"
+        Write-Host "Building MSIX with certificate: $certPath"
+        msbuild packaging/Lumos.wapproj /p:Configuration=Release /p:Platform=x64 /p:AppxPackageDir="$PWD\AppPackages\" /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:PackageCertificateKeyFile="$certPath" /p:PackageCertificatePassword=LumosCert2026 /v:detailed
+        
+    - name: List AppPackages directory
+      run: |
+        Write-Host "Contents of AppPackages directory:"
+        Get-ChildItem -Path AppPackages -Recurse | ForEach-Object { Write-Host $_.FullName }
+        
     - name: Sign MSIX Package
       run: |
         $msixPath = Get-ChildItem -Path "AppPackages" -Filter "*.msix" -Recurse | Select-Object -First 1
