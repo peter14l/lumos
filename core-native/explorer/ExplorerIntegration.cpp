@@ -3,6 +3,7 @@
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <shobjidl.h>
+#include <exdisp.h>
 #include <atlbase.h>
 #include <algorithm>
 
@@ -51,110 +52,110 @@ namespace Lumos {
 
     bool ExplorerIntegration::GetSelectedFileViaShellView(FileInfo& outInfo) {
         // Get the foreground Explorer window
-        HWND explorerWindow = GetForegroundWindow();
-        if (explorerWindow == nullptr) {
+        HWND foregroundWindow = GetForegroundWindow();
+        if (foregroundWindow == nullptr) {
             return false;
         }
 
-        // Find the ShellView window - try multiple window class names
-        HWND shellViewWindow = FindWindowEx(explorerWindow, nullptr, L"SHELLDLL_DefView", nullptr);
-        if (!shellViewWindow) {
-            // Try alternative window hierarchy for Windows 11
-            HWND shellTabWindow = FindWindowEx(explorerWindow, nullptr, L"ShellTabWindowClass", nullptr);
-            if (shellTabWindow) {
-                shellViewWindow = FindWindowEx(shellTabWindow, nullptr, L"SHELLDLL_DefView", nullptr);
+        // Use Shell Windows to enumerate Explorer windows and find the active one
+        CComPtr<IShellWindows> shellWindows;
+        HRESULT hr = CoCreateInstance(CLSID_ShellWindows, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&shellWindows));
+        if (FAILED(hr)) {
+            return false;
+        }
+
+        long windowCount = 0;
+        hr = shellWindows->get_Count(&windowCount);
+        if (FAILED(hr)) {
+            return false;
+        }
+
+        // Find the Explorer window that matches our foreground window
+        for (long i = 0; i < windowCount; i++) {
+            CComPtr<IDispatch> dispatch;
+            CComVariant index(i);
+            hr = shellWindows->Item(index, &dispatch);
+            if (FAILED(hr) || !dispatch) {
+                continue;
             }
-        }
-        
-        if (!shellViewWindow) {
-            return false;
-        }
 
-        // Get IShellBrowser from the window
-        CComPtr<IUnknown> unknown;
-        HRESULT hr = SHGetInstanceExplorer(&unknown);
-        if (FAILED(hr)) {
-            return false;
-        }
-        
-        CComPtr<IShellBrowser> shellBrowser;
-        hr = unknown->QueryInterface(IID_PPV_ARGS(&shellBrowser));
-        if (FAILED(hr)) {
-            return false;
-        }
+            // Get IWebBrowserApp interface
+            CComPtr<IWebBrowserApp> webBrowser;
+            hr = dispatch->QueryInterface(IID_PPV_ARGS(&webBrowser));
+            if (FAILED(hr)) {
+                continue;
+            }
 
-        // Get the active shell view
-        CComPtr<IShellView> shellView;
-        hr = shellBrowser->QueryActiveShellView(&shellView);
-        if (FAILED(hr)) {
-            return false;
-        }
+            // Get the window handle
+            SHANDLE_PTR windowHandle = 0;
+            hr = webBrowser->get_HWND(&windowHandle);
+            if (FAILED(hr)) {
+                continue;
+            }
 
-        // Try to get IFolderView2 for better file access
-        CComPtr<IFolderView2> folderView;
-        hr = shellView->QueryInterface(IID_PPV_ARGS(&folderView));
-        if (SUCCEEDED(hr) && folderView) {
-            // Use IFolderView2 to get selected items
-            CComPtr<IShellItemArray> selectedItems;
-            hr = folderView->GetSelection(FALSE, &selectedItems);
-            if (SUCCEEDED(hr) && selectedItems) {
-                // Get the first selected item
-                CComPtr<IShellItem> item;
-                hr = selectedItems->GetItemAt(0, &item);
-                if (SUCCEEDED(hr) && item) {
-                    // Get the file path
-                    LPWSTR filePath = nullptr;
-                    hr = item->GetDisplayName(SIGDN_FILESYSPATH, &filePath);
-                    if (SUCCEEDED(hr) && filePath) {
-                        std::wstring path(filePath);
-                        CoTaskMemFree(filePath);
+            // Check if this is our foreground window
+            if ((HWND)windowHandle != foregroundWindow) {
+                continue;
+            }
 
-                        // Check if it's a directory
-                        if (!IsDirectory(path)) {
-                            outInfo.path = path;
-                            outInfo.extension = GetFileExtension(path);
-                            outInfo.size = GetFileSize(path);
-                            return true;
-                        }
+            // Get IServiceProvider
+            CComPtr<IServiceProvider> serviceProvider;
+            hr = webBrowser->QueryInterface(IID_PPV_ARGS(&serviceProvider));
+            if (FAILED(hr)) {
+                continue;
+            }
+
+            // Get IShellBrowser
+            CComPtr<IShellBrowser> shellBrowser;
+            hr = serviceProvider->QueryService(SID_STopLevelBrowser, IID_PPV_ARGS(&shellBrowser));
+            if (FAILED(hr)) {
+                continue;
+            }
+
+            // Get IShellView
+            CComPtr<IShellView> shellView;
+            hr = shellBrowser->QueryActiveShellView(&shellView);
+            if (FAILED(hr)) {
+                continue;
+            }
+
+            // Get selected items using IDataObject
+            CComPtr<IDataObject> dataObject;
+            hr = shellView->GetItemObject(SVGIO_SELECTION, IID_PPV_ARGS(&dataObject));
+            if (FAILED(hr)) {
+                continue;
+            }
+
+            // Get file path from data object
+            FORMATETC format = { CF_HDROP, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+            STGMEDIUM medium;
+            hr = dataObject->GetData(&format, &medium);
+            if (FAILED(hr)) {
+                continue;
+            }
+
+            HDROP hDrop = static_cast<HDROP>(GlobalLock(medium.hGlobal));
+            if (hDrop != nullptr) {
+                UINT fileCount = DragQueryFile(hDrop, 0xFFFFFFFF, nullptr, 0);
+                if (fileCount > 0) {
+                    wchar_t filePath[MAX_PATH];
+                    DragQueryFile(hDrop, 0, filePath, MAX_PATH);
+                    
+                    if (!IsDirectory(filePath)) {
+                        outInfo.path = filePath;
+                        outInfo.extension = GetFileExtension(filePath);
+                        outInfo.size = GetFileSize(filePath);
                     }
                 }
+                GlobalUnlock(medium.hGlobal);
             }
+
+            ReleaseStgMedium(&medium);
+
+            return !outInfo.path.empty();
         }
 
-        // Fallback: use IDataObject method
-        CComPtr<IDataObject> dataObject;
-        hr = shellView->GetItemObject(SVGIO_SELECTION, IID_PPV_ARGS(&dataObject));
-        if (FAILED(hr)) {
-            return false;
-        }
-
-        // Get file path from data object
-        FORMATETC format = { CF_HDROP, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-        STGMEDIUM medium;
-        hr = dataObject->GetData(&format, &medium);
-        if (FAILED(hr)) {
-            return false;
-        }
-
-        HDROP hDrop = static_cast<HDROP>(GlobalLock(medium.hGlobal));
-        if (hDrop != nullptr) {
-            UINT fileCount = DragQueryFile(hDrop, 0xFFFFFFFF, nullptr, 0);
-            if (fileCount > 0) {
-                wchar_t filePath[MAX_PATH];
-                DragQueryFile(hDrop, 0, filePath, MAX_PATH);
-                
-                if (!IsDirectory(filePath)) {
-                    outInfo.path = filePath;
-                    outInfo.extension = GetFileExtension(filePath);
-                    outInfo.size = GetFileSize(filePath);
-                }
-            }
-            GlobalUnlock(medium.hGlobal);
-        }
-
-        ReleaseStgMedium(&medium);
-
-        return !outInfo.path.empty();
+        return false;
     }
 
     bool ExplorerIntegration::IsDirectory(const std::wstring& path) {
