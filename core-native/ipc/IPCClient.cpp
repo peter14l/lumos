@@ -144,21 +144,25 @@ namespace Lumos {
         
         std::wstring path(exePath);
         size_t lastSlash = path.find_last_of(L"\\");
+        std::wstring exeDir;
         if (lastSlash != std::wstring::npos) {
-            path = path.substr(0, lastSlash + 1);
+            exeDir = path.substr(0, lastSlash + 1);
         }
         
         // Try multiple possible names for the UI executable
+        // In MSIX packages, all executables are in the same directory
         std::wstring candidates[] = {
-            path + L"Lumos.UI.exe",
-            path + L"ui-managed.exe",
-            path + L"..\\ui-managed\\bin\\x64\\Release\\net8.0-windows\\Lumos.UI.exe",
-            path + L"..\\ui-managed\\bin\\x64\\Release\\net8.0-windows\\ui-managed.exe"
+            exeDir + L"ui-managed.exe",                    // Same directory (MSIX)
+            exeDir + L"Lumos.UI.exe",                      // Same directory (MSIX alternative name)
+            exeDir + L"..\\ui-managed\\bin\\x64\\Release\\net8.0-windows\\ui-managed.exe",  // Dev build
+            exeDir + L"..\\ui-managed\\bin\\x64\\Release\\net8.0-windows\\Lumos.UI.exe",    // Dev build alternative
+            exeDir + L"..\\ui-managed\\bin\\x64\\Debug\\net8.0-windows\\ui-managed.exe",    // Debug build
+            exeDir + L"..\\ui-managed\\bin\\x64\\Debug\\net8.0-windows\\Lumos.UI.exe"       // Debug build alternative
         };
         
         for (const auto& candidate : candidates) {
             DWORD fileAttr = GetFileAttributes(candidate.c_str());
-            if (fileAttr != INVALID_FILE_ATTRIBUTES) {
+            if (fileAttr != INVALID_FILE_ATTRIBUTES && !(fileAttr & FILE_ATTRIBUTE_DIRECTORY)) {
                 std::wcout << L"Found UI executable at: " << candidate << std::endl;
                 return candidate;
             }

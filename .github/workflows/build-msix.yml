@@ -35,21 +35,32 @@ jobs:
     - name: Build C# UI (ui-managed)
       run: msbuild ui-managed/ui-managed.csproj /p:Configuration=Release /p:Platform=x64
       
-    - name: Generate self-signed certificate
+    - name: Decode and import certificate
       run: |
-        $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=Lumos" -KeyUsage DigitalSignature -FriendlyName "Lumos Certificate" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
-        $password = ConvertTo-SecureString -String "LumosCert2026" -Force -AsPlainText
-        Export-PfxCertificate -Cert $cert -FilePath LumosCert.pfx -Password $password
-        Write-Host "Certificate created"
+        # Decode base64 certificate from secrets
+        $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.SIGNING_CERTIFICATE }}")
+        $pfxPath = "LumosCert.pfx"
+        [System.IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+        
+        Write-Host "Certificate imported from secrets"
         
     - name: Prepare MSIX Package Files
       run: |
         # Create package directory structure
         New-Item -ItemType Directory -Force -Path "PackageFiles"
         
-        # Copy built executables
+        # Copy core executable
         Copy-Item "core-native/bin/x64/Release/core-native.exe" "PackageFiles/" -Force
-        Copy-Item "ui-managed/bin/x64/Release/*" "PackageFiles/" -Recurse -Force
+        
+        # Copy UI executable and dependencies from .NET output directory
+        $uiOutputPath = "ui-managed/bin/x64/Release/net8.0-windows"
+        if (Test-Path $uiOutputPath) {
+          Copy-Item "$uiOutputPath/*" "PackageFiles/" -Recurse -Force
+          Write-Host "Copied UI files from $uiOutputPath"
+        } else {
+          Write-Error "UI output path not found: $uiOutputPath"
+          exit 1
+        }
         
         # Copy manifest with correct name (must be AppxManifest.xml)
         Copy-Item "packaging/Package.appxmanifest" "PackageFiles/AppxManifest.xml" -Force
@@ -102,7 +113,7 @@ jobs:
         $msixPath = "Lumos_1.0.0.0_x64.msix"
         
         Write-Host "Signing MSIX package..."
-        & $signtool.FullName sign /fd SHA256 /f LumosCert.pfx /p LumosCert2026 $msixPath
+        & $signtool.FullName sign /fd SHA256 /f LumosCert.pfx /p "${{ secrets.CERTIFICATE_PASSWORD }}" $msixPath
         
         Write-Host "MSIX package signed successfully"
         

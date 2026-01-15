@@ -82,3 +82,7 @@ Lumos.UI/
 *.temp
 *.log
 *.cache
+
+# Certificate files (DO NOT COMMIT)
+LumosCert.pfx
+LumosCert_base64.txt
