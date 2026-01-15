@@ -27,7 +27,9 @@ namespace Lumos {
         bool IsDirectory(const std::wstring& path);
         std::wstring GetFileExtension(const std::wstring& path);
         uint64_t GetFileSize(const std::wstring& path);
+        std::wstring GetFilePathFromElement(IUIAutomationElement* element);
 
         bool m_comInitialized;
+        CComPtr<IUIAutomation> m_uiAutomation;
     };
 }
