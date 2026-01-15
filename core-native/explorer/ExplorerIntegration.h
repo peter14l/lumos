@@ -2,6 +2,8 @@
 #include <Windows.h>
 #include <string>
 #include <optional>
+#include <UIAutomation.h>
+#include <atlbase.h>
 
 namespace Lumos {
     struct FileInfo {
