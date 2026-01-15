@@ -150,10 +150,12 @@ namespace Lumos {
         }
         
         // Try multiple possible names for the UI executable
-        // In MSIX packages, all executables are in the same directory
+        // In MSIX packages, .NET apps may be in win-x64 subdirectory
         std::wstring candidates[] = {
-            exeDir + L"ui-managed.exe",                    // Same directory (MSIX)
-            exeDir + L"Lumos.UI.exe",                      // Same directory (MSIX alternative name)
+            exeDir + L"ui-managed.exe",                    // Same directory (MSIX - flat)
+            exeDir + L"win-x64\\ui-managed.exe",           // MSIX with runtime identifier folder
+            exeDir + L"Lumos.UI.exe",                      // Same directory (alternative name)
+            exeDir + L"win-x64\\Lumos.UI.exe",             // MSIX RID folder (alternative name)
             exeDir + L"..\\ui-managed\\bin\\x64\\Release\\net8.0-windows\\ui-managed.exe",  // Dev build
             exeDir + L"..\\ui-managed\\bin\\x64\\Release\\net8.0-windows\\Lumos.UI.exe",    // Dev build alternative
             exeDir + L"..\\ui-managed\\bin\\x64\\Debug\\net8.0-windows\\ui-managed.exe",    // Debug build
