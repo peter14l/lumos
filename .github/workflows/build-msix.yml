@@ -51,8 +51,10 @@ jobs:
         Copy-Item "core-native/bin/x64/Release/core-native.exe" "PackageFiles/" -Force
         Copy-Item "ui-managed/bin/x64/Release/*" "PackageFiles/" -Recurse -Force
         
-        # Copy manifest and assets
-        Copy-Item "packaging/Package.appxmanifest" "PackageFiles/" -Force
+        # Copy manifest with correct name (must be AppxManifest.xml)
+        Copy-Item "packaging/Package.appxmanifest" "PackageFiles/AppxManifest.xml" -Force
+        
+        # Copy assets
         Copy-Item "packaging/Assets" "PackageFiles/" -Recurse -Force
         
         Write-Host "Package files prepared"
