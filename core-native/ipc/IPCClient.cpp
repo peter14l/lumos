@@ -11,15 +11,19 @@ namespace Lumos {
     bool IPCClient::SendPreviewRequest(const PreviewRequest& request) {
         // Ensure UI process is running
         if (!IsUIProcessRunning()) {
+            std::wcout << L"UI process not running, attempting to launch..." << std::endl;
             if (!LaunchUIProcess()) {
+                std::wcerr << L"Failed to launch UI process" << std::endl;
                 return false;
             }
             // Give UI process time to start
-            Sleep(500);
+            std::wcout << L"Waiting for UI process to initialize..." << std::endl;
+            Sleep(1000); // Increased from 500ms to 1000ms
         }
 
         HANDLE hPipe;
         if (!ConnectToPipe(hPipe)) {
+            std::wcerr << L"Failed to connect to named pipe" << std::endl;
             return false;
         }
 
@@ -36,7 +40,14 @@ namespace Lumos {
         );
 
         CloseHandle(hPipe);
-        return success && bytesWritten == json.length();
+        
+        if (success && bytesWritten == json.length()) {
+            std::wcout << L"Successfully sent preview request (" << bytesWritten << L" bytes)" << std::endl;
+            return true;
+        }
+        
+        std::wcerr << L"Failed to write to pipe. Bytes written: " << bytesWritten << L" / " << json.length() << std::endl;
+        return false;
     }
 
     bool IPCClient::IsUIProcessRunning() {
@@ -61,6 +72,16 @@ namespace Lumos {
     bool IPCClient::LaunchUIProcess() {
         std::wstring uiPath = GetUIProcessPath();
         
+        std::wcout << L"Attempting to launch UI process: " << uiPath << std::endl;
+        
+        // Check if file exists
+        DWORD fileAttr = GetFileAttributes(uiPath.c_str());
+        if (fileAttr == INVALID_FILE_ATTRIBUTES) {
+            std::wcerr << L"UI process executable not found at: " << uiPath << std::endl;
+            std::wcerr << L"Error code: " << GetLastError() << std::endl;
+            return false;
+        }
+        
         STARTUPINFO si = { sizeof(STARTUPINFO) };
         PROCESS_INFORMATION pi;
 
@@ -78,8 +99,11 @@ namespace Lumos {
         );
 
         if (success) {
+            std::wcout << L"UI process launched successfully (PID: " << pi.dwProcessId << L")" << std::endl;
             CloseHandle(pi.hProcess);
             CloseHandle(pi.hThread);
+        } else {
+            std::wcerr << L"Failed to create UI process. Error code: " << GetLastError() << std::endl;
         }
 
         return success;
@@ -124,7 +148,24 @@ namespace Lumos {
             path = path.substr(0, lastSlash + 1);
         }
         
-        path += L"ui-managed.exe";
-        return path;
+        // Try multiple possible names for the UI executable
+        std::wstring candidates[] = {
+            path + L"Lumos.UI.exe",
+            path + L"ui-managed.exe",
+            path + L"..\\ui-managed\\bin\\x64\\Release\\net8.0-windows\\Lumos.UI.exe",
+            path + L"..\\ui-managed\\bin\\x64\\Release\\net8.0-windows\\ui-managed.exe"
+        };
+        
+        for (const auto& candidate : candidates) {
+            DWORD fileAttr = GetFileAttributes(candidate.c_str());
+            if (fileAttr != INVALID_FILE_ATTRIBUTES) {
+                std::wcout << L"Found UI executable at: " << candidate << std::endl;
+                return candidate;
+            }
+        }
+        
+        // Default to first candidate if none found
+        std::wcout << L"UI executable not found, using default: " << candidates[0] << std::endl;
+        return candidates[0];
     }
 }
