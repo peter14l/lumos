@@ -60,12 +60,22 @@ jobs:
         
     - name: Create MSIX Package
       run: |
-        $makeappx = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\makeappx.exe"
+        # Find makeappx.exe in Windows SDK
+        $sdkPath = "C:\Program Files (x86)\Windows Kits\10\bin"
+        $makeappx = Get-ChildItem -Path $sdkPath -Recurse -Filter "makeappx.exe" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*\x64\*" } | Select-Object -First 1
+        
+        if (-not $makeappx) {
+          Write-Error "makeappx.exe not found in Windows SDK"
+          exit 1
+        }
+        
+        Write-Host "Found makeappx.exe at: $($makeappx.FullName)"
+        
         $packageDir = Resolve-Path "PackageFiles"
         $outputMsix = "Lumos_1.0.0.0_x64.msix"
         
         Write-Host "Creating MSIX package..."
-        & $makeappx pack /d $packageDir /p $outputMsix /nv
+        & $makeappx.FullName pack /d $packageDir /p $outputMsix /nv
         
         if (Test-Path $outputMsix) {
           Write-Host "MSIX package created: $outputMsix"
@@ -76,11 +86,21 @@ jobs:
         
     - name: Sign MSIX Package
       run: |
-        $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
+        # Find signtool.exe in Windows SDK
+        $sdkPath = "C:\Program Files (x86)\Windows Kits\10\bin"
+        $signtool = Get-ChildItem -Path $sdkPath -Recurse -Filter "signtool.exe" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*\x64\*" } | Select-Object -First 1
+        
+        if (-not $signtool) {
+          Write-Error "signtool.exe not found in Windows SDK"
+          exit 1
+        }
+        
+        Write-Host "Found signtool.exe at: $($signtool.FullName)"
+        
         $msixPath = "Lumos_1.0.0.0_x64.msix"
         
         Write-Host "Signing MSIX package..."
-        & $signtool sign /fd SHA256 /f LumosCert.pfx /p LumosCert2026 $msixPath
+        & $signtool.FullName sign /fd SHA256 /f LumosCert.pfx /p LumosCert2026 $msixPath
         
         Write-Host "MSIX package signed successfully"
         
