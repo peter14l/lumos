@@ -39,39 +39,56 @@ jobs:
       run: |
         $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=Lumos" -KeyUsage DigitalSignature -FriendlyName "Lumos Certificate" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
         $password = ConvertTo-SecureString -String "LumosCert2026" -Force -AsPlainText
-        $certPath = Join-Path $PWD "LumosCert.pfx"
-        Export-PfxCertificate -Cert $cert -FilePath $certPath -Password $password
-        Write-Host "Certificate created at: $certPath"
+        Export-PfxCertificate -Cert $cert -FilePath LumosCert.pfx -Password $password
+        Write-Host "Certificate created"
         
-    - name: Build MSIX Package
+    - name: Prepare MSIX Package Files
       run: |
-        $certPath = Resolve-Path "LumosCert.pfx"
-        $appxDir = Join-Path $PWD "AppPackages"
-        Write-Host "Building MSIX with certificate: $certPath"
-        Write-Host "Output directory: $appxDir"
-        msbuild packaging/Lumos.wapproj /p:Configuration=Release /p:Platform=x64 /p:AppxPackageDir="$appxDir\" /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:PackageCertificateKeyFile="$certPath" /p:PackageCertificatePassword=LumosCert2026
+        # Create package directory structure
+        New-Item -ItemType Directory -Force -Path "PackageFiles"
         
-    - name: List AppPackages directory
+        # Copy built executables
+        Copy-Item "core-native/bin/x64/Release/core-native.exe" "PackageFiles/" -Force
+        Copy-Item "ui-managed/bin/x64/Release/*" "PackageFiles/" -Recurse -Force
+        
+        # Copy manifest and assets
+        Copy-Item "packaging/Package.appxmanifest" "PackageFiles/" -Force
+        Copy-Item "packaging/Assets" "PackageFiles/" -Recurse -Force
+        
+        Write-Host "Package files prepared"
+        Get-ChildItem "PackageFiles" -Recurse | ForEach-Object { Write-Host $_.FullName }
+        
+    - name: Create MSIX Package
       run: |
-        Write-Host "Contents of AppPackages directory:"
-        Get-ChildItem -Path AppPackages -Recurse | ForEach-Object { Write-Host $_.FullName }
+        $makeappx = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\makeappx.exe"
+        $packageDir = Resolve-Path "PackageFiles"
+        $outputMsix = "Lumos_1.0.0.0_x64.msix"
+        
+        Write-Host "Creating MSIX package..."
+        & $makeappx pack /d $packageDir /p $outputMsix /nv
+        
+        if (Test-Path $outputMsix) {
+          Write-Host "MSIX package created: $outputMsix"
+        } else {
+          Write-Error "Failed to create MSIX package"
+          exit 1
+        }
         
     - name: Sign MSIX Package
       run: |
-        $msixPath = Get-ChildItem -Path "AppPackages" -Filter "*.msix" -Recurse | Select-Object -First 1
-        if ($msixPath) {
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign /fd SHA256 /f LumosCert.pfx /p LumosCert2026 $msixPath.FullName
-          Write-Host "Signed: $($msixPath.FullName)"
-        } else {
-          Write-Error "MSIX package not found"
-          exit 1
-        }
+        $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
+        $msixPath = "Lumos_1.0.0.0_x64.msix"
+        
+        Write-Host "Signing MSIX package..."
+        & $signtool sign /fd SHA256 /f LumosCert.pfx /p LumosCert2026 $msixPath
+        
+        Write-Host "MSIX package signed successfully"
         
     - name: Upload MSIX Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Lumos-MSIX
-        path: AppPackages/**/*.msix
+        path: Lumos_1.0.0.0_x64.msix
         
     - name: Upload Certificate (for installation)
       uses: actions/upload-artifact@v4
