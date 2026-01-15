@@ -71,8 +71,14 @@ namespace Lumos {
         }
 
         // Get IShellBrowser from the window
+        CComPtr<IUnknown> unknown;
+        HRESULT hr = SHGetInstanceExplorer(&unknown);
+        if (FAILED(hr)) {
+            return false;
+        }
+        
         CComPtr<IShellBrowser> shellBrowser;
-        HRESULT hr = SHGetInstanceExplorer(&shellBrowser);
+        hr = unknown->QueryInterface(IID_PPV_ARGS(&shellBrowser));
         if (FAILED(hr)) {
             return false;
         }
