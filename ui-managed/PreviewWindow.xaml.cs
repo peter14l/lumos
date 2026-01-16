@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media.Animation;
 using Lumos.Contracts;
 using Lumos.UI.Renderers;
+using Lumos.UI.Services;
 
 namespace Lumos.UI
 {
