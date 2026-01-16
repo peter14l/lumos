@@ -6,6 +6,7 @@
 #include <exdisp.h>
 #include <atlbase.h>
 #include <algorithm>
+#include <iostream>
 
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Shell32.lib")
