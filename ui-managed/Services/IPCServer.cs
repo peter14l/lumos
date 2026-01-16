@@ -44,24 +44,31 @@ namespace Lumos.UI.Services
 
                     // Wait for client connection
                     await pipeServer.WaitForConnectionAsync(cancellationToken);
+                    Console.WriteLine("[UI-DEBUG] Client connected to pipe");
 
                     // Read message
                     using var reader = new StreamReader(pipeServer, Encoding.UTF8);
                     var json = await reader.ReadToEndAsync();
+                    Console.WriteLine($"[UI-DEBUG] Received JSON: {json}");
 
                     if (!string.IsNullOrEmpty(json))
                     {
                         // Deserialize preview request
                         var request = JsonSerializer.Deserialize<PreviewRequest>(json);
+                        Console.WriteLine($"[UI-DEBUG] Deserialized request - Path: {request?.Path}, Extension: {request?.Extension}");
                         if (request != null)
                         {
                             // Dispatch to UI thread
                             await Application.Current.Dispatcher.InvokeAsync(async () =>
                             {
+                                Console.WriteLine("[UI-DEBUG] Dispatched to UI thread");
                                 var window = Application.Current.MainWindow as PreviewWindow;
+                                Console.WriteLine($"[UI-DEBUG] MainWindow is PreviewWindow: {window != null}");
                                 if (window != null)
                                 {
+                                    Console.WriteLine("[UI-DEBUG] Calling ShowPreview...");
                                     await window.ShowPreview(request);
+                                    Console.WriteLine("[UI-DEBUG] ShowPreview completed");
                                 }
                             });
                         }

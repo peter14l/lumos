@@ -23,30 +23,34 @@ namespace Lumos.UI.Renderers
 
         public async Task<UIElement> RenderAsync(string filePath, CancellationToken cancellationToken)
         {
-            return await Task.Run(() =>
+            // Load bitmap on background thread
+            var bitmap = await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var image = new Image
-                {
-                    MaxWidth = MaxResolution,
-                    MaxHeight = MaxResolution,
-                    Stretch = System.Windows.Media.Stretch.Uniform
-                };
-
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.DecodePixelWidth = MaxResolution; // Cap resolution
-                bitmap.UriSource = new Uri(filePath, UriKind.Absolute);
-                bitmap.EndInit();
-                bitmap.Freeze(); // Make thread-safe
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.DecodePixelWidth = MaxResolution; // Cap resolution
+                bmp.UriSource = new Uri(filePath, UriKind.Absolute);
+                bmp.EndInit();
+                bmp.Freeze(); // Make thread-safe
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                image.Source = bitmap;
-                return image;
+                return bmp;
             }, cancellationToken);
+
+            // Create Image control on UI thread (this method is called from UI thread via Dispatcher)
+            var image = new Image
+            {
+                MaxWidth = MaxResolution,
+                MaxHeight = MaxResolution,
+                Stretch = System.Windows.Media.Stretch.Uniform,
+                Source = bitmap
+            };
+
+            return image;
         }
     }
 }
