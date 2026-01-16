@@ -42,10 +42,13 @@ namespace Lumos.UI.Renderers
             }, cancellationToken);
 
             // Create Image control on UI thread (this method is called from UI thread via Dispatcher)
+            var screenWidth = SystemParameters.PrimaryScreenWidth;
+            var screenHeight = SystemParameters.PrimaryScreenHeight;
+
             var image = new Image
             {
-                MaxWidth = MaxResolution,
-                MaxHeight = MaxResolution,
+                MaxWidth = screenWidth * 0.5,
+                MaxHeight = screenHeight * 0.5,
                 Stretch = System.Windows.Media.Stretch.Uniform,
                 Source = bitmap
             };

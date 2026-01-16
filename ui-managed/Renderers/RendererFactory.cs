@@ -16,7 +16,9 @@ namespace Lumos.UI.Renderers
                 new TextRenderer(),
                 new PDFRenderer(),
                 new AudioRenderer(),
-                new VideoRenderer()
+                new VideoRenderer(),
+                new FolderRenderer(),
+                new OfficeRenderer()
             };
         }
 
