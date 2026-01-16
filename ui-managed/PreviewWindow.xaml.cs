@@ -49,9 +49,12 @@ namespace Lumos.UI
                 var renderer = _rendererFactory.GetRenderer(request.Extension);
                 if (renderer == null)
                 {
+                    Logger.Log($"Unsupported file type: {request.Extension}");
                     ShowError($"Unsupported file type: {request.Extension}");
                     return;
                 }
+
+                Logger.Log($"Using renderer: {renderer.GetType().Name}");
 
                 // Render content
                 var content = await renderer.RenderAsync(request.Path, _renderCancellation.Token);
@@ -61,17 +64,21 @@ namespace Lumos.UI
                     LoadingText.Visibility = Visibility.Collapsed;
                     ContentPresenter.Content = content;
 
+                    Logger.Log("Content rendered, positioning window...");
                     // Position window near cursor
                     PositionWindowNearCursor();
 
                     // Show window with fade-in animation
                     Show();
+                    Activate(); // Ensure window is active
                     var fadeIn = (Storyboard)Resources["FadeInAnimation"];
                     fadeIn.Begin(this);
+                    Logger.Log("Window shown and animation started");
                 }
             }
             catch (Exception ex)
             {
+                Logger.LogError("Error loading preview", ex);
                 ShowError($"Error loading preview: {ex.Message}");
             }
         }
@@ -92,6 +99,7 @@ namespace Lumos.UI
         {
             // Get cursor position using Win32 API
             GetCursorPos(out POINT cursorPos);
+            Logger.Log($"Cursor pos: {cursorPos.X}, {cursorPos.Y}");
 
             // Get primary screen dimensions
             var screenWidth = SystemParameters.PrimaryScreenWidth;
@@ -99,6 +107,7 @@ namespace Lumos.UI
 
             // Update layout to get actual size
             UpdateLayout();
+            Logger.Log($"Window size: {ActualWidth}x{ActualHeight}");
 
             // Center near cursor, but ensure it's fully visible
             var left = cursorPos.X - (ActualWidth / 2);
@@ -107,6 +116,8 @@ namespace Lumos.UI
             // Constrain to screen bounds
             left = Math.Max(0, Math.Min(left, screenWidth - ActualWidth));
             top = Math.Max(0, Math.Min(top, screenHeight - ActualHeight));
+
+            Logger.Log($"Final window position: {left}, {top}");
 
             Left = left;
             Top = top;
