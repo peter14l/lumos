@@ -42,21 +42,32 @@ namespace Lumos {
 
     std::optional<FileInfo> ExplorerIntegration::GetSelectedFile() {
         FileInfo info;
+        
+        // Retry logic to handle timing issues with Explorer selection
+        const int MAX_RETRIES = 3;
+        const int RETRY_DELAY_MS = 50;
+        
+        for (int attempt = 0; attempt < MAX_RETRIES; ++attempt) {
+            if (attempt > 0) {
+                std::wcout << L"[DEBUG] Retry attempt " << attempt << L"..." << std::endl;
+                Sleep(RETRY_DELAY_MS);
+            }
 
-        std::wcout << L"[DEBUG] Attempting UI Automation method..." << std::endl;
-        // Try UI Automation first (preferred)
-        if (GetSelectedFileViaUIAutomation(info)) {
-            std::wcout << L"[DEBUG] UI Automation succeeded" << std::endl;
-            return info;
-        }
-        std::wcout << L"[DEBUG] UI Automation failed, trying ShellView fallback..." << std::endl;
+            std::wcout << L"[DEBUG] Attempting UI Automation method..." << std::endl;
+            // Try UI Automation first (preferred)
+            if (GetSelectedFileViaUIAutomation(info)) {
+                std::wcout << L"[DEBUG] UI Automation succeeded" << std::endl;
+                return info;
+            }
+            std::wcout << L"[DEBUG] UI Automation failed, trying ShellView fallback..." << std::endl;
 
-        // Fallback to ShellView
-        if (GetSelectedFileViaShellView(info)) {
-            std::wcout << L"[DEBUG] ShellView succeeded" << std::endl;
-            return info;
+            // Fallback to ShellView
+            if (GetSelectedFileViaShellView(info)) {
+                std::wcout << L"[DEBUG] ShellView succeeded" << std::endl;
+                return info;
+            }
+            std::wcout << L"[DEBUG] ShellView also failed" << std::endl;
         }
-        std::wcout << L"[DEBUG] ShellView also failed" << std::endl;
 
         return std::nullopt;
     }
