@@ -17,25 +17,23 @@ namespace Lumos.UI.Renderers
             return Array.Exists(SupportedExtensions, ext => ext.Equals(extension, StringComparison.OrdinalIgnoreCase));
         }
 
-        public async Task<UIElement> RenderAsync(string filePath, CancellationToken cancellationToken)
+        public Task<UIElement> RenderAsync(string filePath, CancellationToken cancellationToken)
         {
-            return await Task.Run(() =>
+            // MediaElement must be created on UI thread
+            var mediaElement = new MediaElement
             {
-                var mediaElement = new MediaElement
-                {
-                    Source = new Uri(filePath, UriKind.Absolute),
-                    LoadedBehavior = MediaState.Manual,
-                    MaxWidth = 1000,
-                    MaxHeight = 700,
-                    Stretch = System.Windows.Media.Stretch.Uniform
-                };
+                Source = new Uri(filePath, UriKind.Absolute),
+                LoadedBehavior = MediaState.Manual,
+                MaxWidth = 1000,
+                MaxHeight = 700,
+                Stretch = System.Windows.Media.Stretch.Uniform
+            };
 
-                // Auto-play with mute
-                mediaElement.Volume = 0;
-                mediaElement.Loaded += (s, e) => mediaElement.Play();
+            // Auto-play with mute
+            mediaElement.Volume = 0;
+            mediaElement.Loaded += (s, e) => mediaElement.Play();
 
-                return mediaElement;
-            }, cancellationToken);
+            return Task.FromResult<UIElement>(mediaElement);
         }
     }
 }
