@@ -42,34 +42,47 @@ namespace Lumos {
     std::optional<FileInfo> ExplorerIntegration::GetSelectedFile() {
         FileInfo info;
 
+        std::wcout << L"[DEBUG] Attempting UI Automation method..." << std::endl;
         // Try UI Automation first (preferred)
         if (GetSelectedFileViaUIAutomation(info)) {
+            std::wcout << L"[DEBUG] UI Automation succeeded" << std::endl;
             return info;
         }
+        std::wcout << L"[DEBUG] UI Automation failed, trying ShellView fallback..." << std::endl;
 
         // Fallback to ShellView
         if (GetSelectedFileViaShellView(info)) {
+            std::wcout << L"[DEBUG] ShellView succeeded" << std::endl;
             return info;
         }
+        std::wcout << L"[DEBUG] ShellView also failed" << std::endl;
 
         return std::nullopt;
     }
 
     bool ExplorerIntegration::GetSelectedFileViaUIAutomation(FileInfo& outInfo) {
         if (!m_uiAutomation) {
+            std::wcout << L"[DEBUG-UIA] UI Automation not initialized" << std::endl;
             return false;
         }
 
         // Get the foreground window
         HWND foregroundWindow = GetForegroundWindow();
         if (foregroundWindow == nullptr) {
+            std::wcout << L"[DEBUG-UIA] No foreground window" << std::endl;
             return false;
         }
+
+        // Get window class name for debugging
+        wchar_t className[256];
+        GetClassName(foregroundWindow, className, 256);
+        std::wcout << L"[DEBUG-UIA] Foreground window class: " << className << std::endl;
 
         // Create automation element from the window
         CComPtr<IUIAutomationElement> rootElement;
         HRESULT hr = m_uiAutomation->ElementFromHandle(foregroundWindow, &rootElement);
         if (FAILED(hr) || !rootElement) {
+            std::wcout << L"[DEBUG-UIA] Failed to get element from handle, hr=" << std::hex << hr << std::endl;
             return false;
         }
 
@@ -77,11 +90,21 @@ namespace Lumos {
         CComPtr<IUIAutomationElement> focusedElement;
         hr = m_uiAutomation->GetFocusedElement(&focusedElement);
         if (FAILED(hr) || !focusedElement) {
+            std::wcout << L"[DEBUG-UIA] Failed to get focused element, hr=" << std::hex << hr << std::endl;
             return false;
+        }
+
+        // Get focused element name for debugging
+        BSTR focusedName = nullptr;
+        focusedElement->get_CurrentName(&focusedName);
+        if (focusedName) {
+            std::wcout << L"[DEBUG-UIA] Focused element name: " << focusedName << std::endl;
+            SysFreeString(focusedName);
         }
 
         // Try to get the file path from the focused element
         std::wstring filePath = GetFilePathFromElement(focusedElement);
+        std::wcout << L"[DEBUG-UIA] File path from focused: " << (filePath.empty() ? L"(empty)" : filePath) << std::endl;
         
         if (filePath.empty()) {
             // If focused element doesn't have a path, try to find selected items
@@ -98,6 +121,9 @@ namespace Lumos {
                 
                 if (SUCCEEDED(hr) && selectedElement) {
                     filePath = GetFilePathFromElement(selectedElement);
+                    std::wcout << L"[DEBUG-UIA] File path from selected: " << (filePath.empty() ? L"(empty)" : filePath) << std::endl;
+                } else {
+                    std::wcout << L"[DEBUG-UIA] No selected element found" << std::endl;
                 }
             }
         }
@@ -107,6 +133,10 @@ namespace Lumos {
             outInfo.extension = GetFileExtension(filePath);
             outInfo.size = GetFileSize(filePath);
             return true;
+        }
+
+        if (!filePath.empty()) {
+            std::wcout << L"[DEBUG-UIA] Path is a directory, skipping" << std::endl;
         }
 
         return false;
