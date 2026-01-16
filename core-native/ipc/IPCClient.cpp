@@ -110,7 +110,11 @@ namespace Lumos {
     }
 
     bool IPCClient::ConnectToPipe(HANDLE& hPipe) {
-        for (int attempt = 0; attempt < 5; ++attempt) {
+        // Try to connect multiple times to allow server to start
+        const int MAX_ATTEMPTS = 10;
+        const int RETRY_DELAY_MS = 200;
+
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
             hPipe = CreateFile(
                 PIPE_NAME,
                 GENERIC_READ | GENERIC_WRITE,
@@ -125,12 +129,20 @@ namespace Lumos {
                 return true;
             }
 
-            if (GetLastError() != ERROR_PIPE_BUSY) {
-                return false;
-            }
+            DWORD error = GetLastError();
 
-            // Wait for pipe to become available
-            if (!WaitNamedPipe(PIPE_NAME, PIPE_TIMEOUT_MS)) {
+            if (error == ERROR_PIPE_BUSY) {
+                // Pipe exists but is busy, wait for it
+                if (!WaitNamedPipe(PIPE_NAME, PIPE_TIMEOUT_MS)) {
+                    // If wait failed, try again in next loop iteration or fail if out of attempts
+                     if (attempt == MAX_ATTEMPTS - 1) return false;
+                }
+            } else if (error == ERROR_FILE_NOT_FOUND) {
+                // Pipe doesn't exist yet (server starting), wait and retry
+                Sleep(RETRY_DELAY_MS);
+            } else {
+                // Other error, fail immediately
+                std::wcerr << L"Failed to connect to pipe. Error: " << error << std::endl;
                 return false;
             }
         }
