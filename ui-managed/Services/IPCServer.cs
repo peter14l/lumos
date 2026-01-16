@@ -53,8 +53,12 @@ namespace Lumos.UI.Services
 
                     if (!string.IsNullOrEmpty(json))
                     {
-                        // Deserialize preview request
-                        var request = JsonSerializer.Deserialize<PreviewRequest>(json);
+                        // Deserialize preview request with case-insensitive options
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        };
+                        var request = JsonSerializer.Deserialize<PreviewRequest>(json, options);
                         Logger.Log($"Deserialized request - Path: {request?.Path}, Extension: {request?.Extension}");
                         if (request != null)
                         {
