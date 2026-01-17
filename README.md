@@ -59,7 +59,6 @@ Lumos brings the beloved macOS Quick Look feature to Windows, allowing you to pr
 
 ### Tips
 - Works on Desktop, in Explorer windows, and in Open/Save dialogs
-- Preview window appears near your cursor
 - Supports rapid file browsing (just keep pressing Spacebar on different files)
 - Does NOT activate when typing in search boxes or renaming files
 
@@ -118,7 +117,6 @@ Lumos/
 ### Preview doesn't appear when pressing Spacebar
 - Ensure Lumos is running (check system tray)
 - Verify you're in Windows Explorer (not another app)
-- Make sure a file (not folder) is selected
 - Try restarting Lumos
 
 ### PDF previews don't work
