@@ -25,7 +25,7 @@ namespace Lumos.UI.Renderers
              {
                  try 
                  {
-                     if (!Directory.Exists(filePath)) return (null, null, "Directory not found");
+                     if (!Directory.Exists(filePath)) return ((string[])null, (string[])null, "Directory not found");
                      
                      var d = Directory.GetDirectories(filePath).Take(10).Select(p => Path.GetFileName(p)).ToArray();
                      var f = Directory.GetFiles(filePath).Take(20).Select(p => Path.GetFileName(p)).ToArray();
@@ -33,7 +33,7 @@ namespace Lumos.UI.Renderers
                  }
                  catch (Exception ex)
                  {
-                     return (null, null, ex.Message);
+                     return ((string[])null, (string[])null, ex.Message);
                  }
              }, cancellationToken);
 
