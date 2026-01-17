@@ -28,5 +28,10 @@ namespace Lumos.UI.Services
         {
             Log($"[ERROR] {message}: {ex.Message}\nStack Trace: {ex.StackTrace}");
         }
+
+        public static void LogWarning(string message)
+        {
+            Log($"[WARNING] {message}");
+        }
     }
 }

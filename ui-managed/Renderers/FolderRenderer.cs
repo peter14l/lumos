@@ -25,15 +25,15 @@ namespace Lumos.UI.Renderers
              {
                  try 
                  {
-                     if (!Directory.Exists(filePath)) return ((string[])null, (string[])null, "Directory not found");
+                     if (!Directory.Exists(filePath)) return ((string[]?)null, (string[]?)null, "Directory not found");
                      
                      var d = Directory.GetDirectories(filePath).Take(10).Select(p => Path.GetFileName(p)).ToArray();
                      var f = Directory.GetFiles(filePath).Take(20).Select(p => Path.GetFileName(p)).ToArray();
-                     return (d, f, (string?)null);
+                     return ((string[]?)d, (string[]?)f, (string?)null);
                  }
                  catch (Exception ex)
                  {
-                     return ((string[])null, (string[])null, ex.Message);
+                     return ((string[]?)null, (string[]?)null, ex.Message);
                  }
              }, cancellationToken);
 
