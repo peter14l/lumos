@@ -35,12 +35,15 @@ Lumos brings the beloved macOS Quick Look feature to Windows, allowing you to pr
 ### Steps
 
 1. **Download** the latest release from the [Releases](https://github.com/yourusername/Lumos/releases) page
-2. **Install the certificate**:
-   - Right-click `LumosCert.pfx`
-   - Select "Install PFX"
-   - Choose "Local Machine" → Next
-   - Enter password (provided in release notes)
-   - Place certificate in "Trusted Root Certification Authorities"
+2. **Install the certificate** (Required for sideloading):
+   - Right-click the downloaded `Lumos_1.0.0.0_x64.msix`
+   - Select **Properties** → **Digital Signatures** tab
+   - Select the signature in the list and click **Details**
+   - Click **View Certificate** → **Install Certificate**
+   - Select **Local Machine** → Next
+   - Select **Place all certificates in the following store**
+   - Browse and select **Trusted Root Certification Authorities** → OK → Next → Finish
+   - If prompted for **password**, use **"2008"** and click **OK**
 3. **Install Lumos**:
    - Double-click `Lumos_1.0.0.0_x64.msix`
    - Click "Install"
