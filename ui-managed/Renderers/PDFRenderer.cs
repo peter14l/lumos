@@ -18,19 +18,17 @@ namespace Lumos.UI.Renderers
             return Array.Exists(SupportedExtensions, ext => ext.Equals(extension, StringComparison.OrdinalIgnoreCase));
         }
 
-        public async Task<UIElement> RenderAsync(string filePath, CancellationToken cancellationToken)
+        public Task<UIElement> RenderAsync(string filePath, CancellationToken cancellationToken)
         {
             try
             {
-                Logger.Log($"PDFRenderer: Starting render for {filePath}");
+                Logger.Log($"PDFRenderer: Creating WebView2 for {filePath}");
                 
                 // MSIX apps cannot write to the install directory.
                 var userDataFolder = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Lumos",
                     "WebView2");
-
-                Logger.Log($"PDFRenderer: Setting WebView2 User Data Folder to: {userDataFolder}");
 
                 var webView = new WebView2
                 {
@@ -42,30 +40,37 @@ namespace Lumos.UI.Renderers
                     }
                 };
 
-                Logger.Log("PDFRenderer: Initializing WebView2 via CreationProperties...");
-                await webView.EnsureCoreWebView2Async();
-                Logger.Log("PDFRenderer: WebView2 initialized");
-                
-                cancellationToken.ThrowIfCancellationRequested();
+                // Initialize asynchronously without blocking the UI thread or window creation
+                InitializeWebView(webView, filePath);
 
-                // Load PDF using file:// protocol
-                Logger.Log($"PDFRenderer: Navigating to {filePath}");
-                webView.Source = new Uri(filePath, UriKind.Absolute);
-
-                return webView;
+                return Task.FromResult<UIElement>(webView);
             }
             catch (Exception ex)
             {
                 Logger.LogError("PDFRenderer error", ex);
-                return new TextBlock
+                return Task.FromResult<UIElement>(new TextBlock
                 {
-                    Text = $"PDF preview requires WebView2 runtime.\n\nError: {ex.Message}\n\nPlease install WebView2 runtime from Microsoft.",
-                    Foreground = System.Windows.Media.Brushes.Red,
-                    FontSize = 14,
-                    Padding = new Thickness(20),
-                    TextWrapping = TextWrapping.Wrap,
-                    MaxWidth = 400
-                };
+                    Text = $"Error creating PDF preview: {ex.Message}",
+                    Foreground = System.Windows.Media.Brushes.Red
+                });
+            }
+        }
+
+        private async void InitializeWebView(WebView2 webView, string filePath)
+        {
+            try
+            {
+                Logger.Log("PDFRenderer: Initializing WebView2 (Async)...");
+                await webView.EnsureCoreWebView2Async();
+                Logger.Log("PDFRenderer: WebView2 initialized successfully");
+
+                // Load PDF using file:// protocol
+                Logger.Log($"PDFRenderer: Navigating to {filePath}");
+                webView.Source = new Uri(filePath, UriKind.Absolute);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("PDFRenderer: WebView2 initialization failed", ex);
             }
         }
     }
