@@ -29,8 +29,19 @@ namespace Lumos.UI.Renderers
                     Height = 600
                 };
 
+                // MSIX apps cannot write to the install directory.
+                // We must properly configure the User Data Folder to a writable location.
+                var userDataFolder = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Lumos",
+                    "WebView2");
+
+                Logger.Log($"PDFRenderer: Setting WebView2 User Data Folder to: {userDataFolder}");
+
+                var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
+
                 Logger.Log("PDFRenderer: Initializing WebView2...");
-                await webView.EnsureCoreWebView2Async();
+                await webView.EnsureCoreWebView2Async(env);
                 Logger.Log("PDFRenderer: WebView2 initialized");
                 
                 cancellationToken.ThrowIfCancellationRequested();
