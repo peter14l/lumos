@@ -24,14 +24,7 @@ namespace Lumos.UI.Renderers
             {
                 Logger.Log($"PDFRenderer: Starting render for {filePath}");
                 
-                var webView = new WebView2
-                {
-                    Width = 800,
-                    Height = 600
-                };
-
                 // MSIX apps cannot write to the install directory.
-                // We must properly configure the User Data Folder to a writable location.
                 var userDataFolder = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Lumos",
@@ -39,10 +32,18 @@ namespace Lumos.UI.Renderers
 
                 Logger.Log($"PDFRenderer: Setting WebView2 User Data Folder to: {userDataFolder}");
 
-                var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
+                var webView = new WebView2
+                {
+                    Width = 800,
+                    Height = 600,
+                    CreationProperties = new CoreWebView2CreationProperties
+                    {
+                        UserDataFolder = userDataFolder
+                    }
+                };
 
-                Logger.Log("PDFRenderer: Initializing WebView2...");
-                await webView.EnsureCoreWebView2Async(env);
+                Logger.Log("PDFRenderer: Initializing WebView2 via CreationProperties...");
+                await webView.EnsureCoreWebView2Async();
                 Logger.Log("PDFRenderer: WebView2 initialized");
                 
                 cancellationToken.ThrowIfCancellationRequested();
