@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Web.WebView2.Wpf;
+using Lumos.UI.Services;
 
 namespace Lumos.UI.Renderers
 {
@@ -20,23 +21,29 @@ namespace Lumos.UI.Renderers
         {
             try
             {
+                Logger.Log($"PDFRenderer: Starting render for {filePath}");
+                
                 var webView = new WebView2
                 {
                     Width = 800,
                     Height = 600
                 };
 
+                Logger.Log("PDFRenderer: Initializing WebView2...");
                 await webView.EnsureCoreWebView2Async();
+                Logger.Log("PDFRenderer: WebView2 initialized");
                 
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Load PDF using file:// protocol
+                Logger.Log($"PDFRenderer: Navigating to {filePath}");
                 webView.Source = new Uri(filePath, UriKind.Absolute);
 
                 return webView;
             }
             catch (Exception ex)
             {
+                Logger.LogError("PDFRenderer error", ex);
                 return new TextBlock
                 {
                     Text = $"PDF preview requires WebView2 runtime.\n\nError: {ex.Message}\n\nPlease install WebView2 runtime from Microsoft.",

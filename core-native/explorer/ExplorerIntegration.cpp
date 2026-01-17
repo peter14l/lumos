@@ -140,15 +140,15 @@ namespace Lumos {
             }
         }
 
-        if (!filePath.empty() && !IsDirectory(filePath)) {
-            outInfo.path = filePath;
-            outInfo.extension = GetFileExtension(filePath);
-            outInfo.size = GetFileSize(filePath);
-            return true;
-        }
-
         if (!filePath.empty()) {
-            std::wcout << L"[DEBUG-UIA] Path is a directory, skipping" << std::endl;
+            if (IsDirectory(filePath)) {
+                outInfo.extension = L".folder"; // Explicitly mark as folder
+            } else {
+                outInfo.extension = GetFileExtension(filePath);
+            }
+            outInfo.path = filePath;
+            outInfo.size = IsDirectory(filePath) ? 0 : GetFileSize(filePath); // Folders size logic can be complex
+            return true;
         }
 
         return false;
@@ -245,11 +245,14 @@ namespace Lumos {
                     wchar_t filePath[MAX_PATH];
                     DragQueryFile(hDrop, 0, filePath, MAX_PATH);
                     
-                    if (!IsDirectory(filePath)) {
-                        outInfo.path = filePath;
+                    if (IsDirectory(filePath)) {
+                        outInfo.extension = L".folder";
+                        outInfo.size = 0;
+                    } else {
                         outInfo.extension = GetFileExtension(filePath);
                         outInfo.size = GetFileSize(filePath);
                     }
+                    outInfo.path = filePath;
                 }
                 GlobalUnlock(medium.hGlobal);
             }
