@@ -14,7 +14,7 @@ namespace Lumos.UI.Renderers
 {
     public class NativePdfRenderer : IRenderer
     {
-        public bool CanRender(string extension)
+        public bool CanHandle(string extension)
         {
             return extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase);
         }
