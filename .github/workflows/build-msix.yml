@@ -44,6 +44,23 @@ jobs:
         
         Write-Host "Certificate imported from secrets"
         
+    - name: Increment Version
+      run: |
+        $manifestPath = "packaging/Package.appxmanifest"
+        [xml]$xml = Get-Content $manifestPath
+        $version = [Version]$xml.Package.Identity.Version
+        
+        # Increment Build (Revision) component: Major.Minor.Build.Revision
+        # MSIX uses quad format. We'll increment the 4th digit (Revision) for every build.
+        # Alternatively, use GitHub Run Number for a unique increasing ID.
+        $newRevision = ${{ github.run_number }}
+        $newVersion = "{0}.{1}.{2}.{3}" -f $version.Major, $version.Minor, $version.Build, $newRevision
+        
+        $xml.Package.Identity.Version = $newVersion
+        $xml.Save($manifestPath)
+        
+        Write-Host "Updated version to $newVersion"
+
     - name: Prepare MSIX Package Files
       run: |
         # Create package directory structure
