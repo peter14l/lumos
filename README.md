@@ -34,7 +34,7 @@ Lumos brings the beloved macOS Quick Look feature to Windows, allowing you to pr
 
 ### Steps
 
-1. **Download** the latest release from the [Releases](https://github.com/yourusername/Lumos/releases) page
+1. **Download** the latest release from the [Releases](https://github.com/peter14l/Lumos/releases) page
 2. **Install the certificate** (Required for sideloading):
    - Right-click the downloaded `Lumos_1.0.0.0_x64.msix`
    - Select **Properties** → **Digital Signatures** tab
