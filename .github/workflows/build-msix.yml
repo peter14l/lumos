@@ -70,7 +70,7 @@ jobs:
         Copy-Item "core-native/bin/x64/Release/core-native.exe" "PackageFiles/" -Force
         
         # Copy UI executable and dependencies from .NET output directory
-        $uiOutputPath = "ui-managed/bin/x64/Release/net8.0-windows"
+        $uiOutputPath = "ui-managed/bin/x64/Release/net8.0-windows10.0.19041.0"
         if (Test-Path $uiOutputPath) {
           Copy-Item "$uiOutputPath/*" "PackageFiles/" -Recurse -Force
           Write-Host "Copied UI files from $uiOutputPath"
