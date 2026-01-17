@@ -16,16 +16,6 @@ namespace Lumos.UI
         private CancellationTokenSource? _renderCancellation;
         private readonly RendererFactory _rendererFactory;
 
-        [DllImport("user32.dll")]
-        private static extern bool GetCursorPos(out POINT lpPoint);
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct POINT
-        {
-            public int X;
-            public int Y;
-        }
-
         public PreviewWindow()
         {
             InitializeComponent();
@@ -66,8 +56,8 @@ namespace Lumos.UI
                     ContentPresenter.Content = content;
 
                     Logger.Log("Content rendered, positioning window...");
-                    // Position window near cursor
-                    PositionWindowNearCursor();
+                    // Position window centered on screen
+                    PositionWindowCentered();
 
                     // Show window with fade-in animation
                     Show();
@@ -90,18 +80,14 @@ namespace Lumos.UI
             ErrorText.Text = message;
             ErrorText.Visibility = Visibility.Visible;
             
-            PositionWindowNearCursor();
+            PositionWindowCentered();
             Show();
             var fadeIn = (Storyboard)Resources["FadeInAnimation"];
             fadeIn.Begin(this);
         }
 
-        private void PositionWindowNearCursor()
+        private void PositionWindowCentered()
         {
-            // Get cursor position using Win32 API
-            GetCursorPos(out POINT cursorPos);
-            Logger.Log($"Cursor pos: {cursorPos.X}, {cursorPos.Y}");
-
             // Get primary screen dimensions
             var screenWidth = SystemParameters.PrimaryScreenWidth;
             var screenHeight = SystemParameters.PrimaryScreenHeight;
@@ -110,13 +96,9 @@ namespace Lumos.UI
             UpdateLayout();
             Logger.Log($"Window size: {ActualWidth}x{ActualHeight}");
 
-            // Center near cursor, but ensure it's fully visible
-            var left = cursorPos.X - (ActualWidth / 2);
-            var top = cursorPos.Y - (ActualHeight / 2);
-
-            // Constrain to screen bounds
-            left = Math.Max(0, Math.Min(left, screenWidth - ActualWidth));
-            top = Math.Max(0, Math.Min(top, screenHeight - ActualHeight));
+            // Center window
+            var left = (screenWidth - ActualWidth) / 2;
+            var top = (screenHeight - ActualHeight) / 2;
 
             Logger.Log($"Final window position: {left}, {top}");
 

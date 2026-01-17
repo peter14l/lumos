@@ -65,7 +65,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>UIAutomationCore.lib;Ole32.lib;OleAut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>UIAutomationCore.lib;Ole32.lib;OleAut32.lib;Shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -85,7 +85,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>UIAutomationCore.lib;Ole32.lib;OleAut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>UIAutomationCore.lib;Ole32.lib;OleAut32.lib;Shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -94,12 +94,14 @@
     <ClCompile Include="explorer\ExplorerIntegration.cpp" />
     <ClCompile Include="ipc\IPCClient.cpp" />
     <ClCompile Include="..\shared-contracts\PreviewRequestImpl.cpp" />
+    <ClCompile Include="explorer\TrayIcon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hooks\KeyboardHook.h" />
     <ClInclude Include="explorer\ExplorerIntegration.h" />
     <ClInclude Include="ipc\IPCClient.h" />
     <ClInclude Include="..\shared-contracts\PreviewRequest.h" />
+    <ClInclude Include="explorer\TrayIcon.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

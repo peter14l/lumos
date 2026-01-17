@@ -2,6 +2,7 @@
 #include <iostream>
 #include "hooks/KeyboardHook.h"
 #include "explorer/ExplorerIntegration.h"
+#include "explorer/TrayIcon.h"
 #include "ipc/IPCClient.h"
 
 using namespace Lumos;
@@ -57,7 +58,16 @@ int main() {
         return 1;
     }
 
+    // Initialize System Tray Icon
+    TrayIcon trayIcon;
+    if (!trayIcon.Initialize(GetModuleHandle(NULL))) {
+        std::wcerr << L"Failed to initialize System Tray icon" << std::endl;
+        // Continue anyway, it's not critical
+    }
+
     std::wcout << L"Lumos is running. Press Spacebar in Explorer to preview files." << std::endl;
+    std::wcout << L"Minimize this window to hide it to the System Tray." << std::endl;
+    std::wcout << L"Double-click Tray Icon to restore." << std::endl;
     std::wcout << L"Press Ctrl+C to exit." << std::endl;
 
     // Message loop to keep the application running
